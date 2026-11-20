@@ -2,12 +2,15 @@
 
 Jupyter notebooks that turn **dashcam video**, **black-carbon (BC) time-series CSVs**, and **external weather/traffic APIs** into an aligned feature table for downstream modeling.
 
+This repository also includes an **EV vs ICE training module**: a labeling app (Vehicle Tinder) plus notebooks to train, compare, and explain Stage-2 EV/ICE classifiers used with the dashcam pipeline.
+
 ---
 
 ## Contents
 
 - [What this repository does](#what-this-repository-does)
 - [Pipeline at a glance](#pipeline-at-a-glance)
+- [EV training module](#ev-training-module)
 - [Repository layout](#repository-layout)
 - [Prerequisites](#prerequisites)
 - [Environment setup](#environment-setup)
@@ -23,13 +26,15 @@ Jupyter notebooks that turn **dashcam video**, **black-carbon (BC) time-series C
 ## What this repository does
 
 
-| Stage                        | Notebook                                              | Output                                                     |
-| ---------------------------- | ----------------------------------------------------- | ---------------------------------------------------------- |
-| Optional clip split          | `Code/video_manipulation_utility.ipynb`               | Shorter MP4 clips under `Artifacts/video_clips/`           |
-| Vehicle proximity from video | `Code/dashcam_vehicle_proximity_analysis.ipynb`       | Annotated video + proximity interval CSV                   |
-| Weather + traffic            | `Code/extract_environment_and_traffic_features.ipynb` | `Artifacts/extracted_features.csv`                         |
-| Merge env + vehicle bins     | `Code/build_model_features.ipynb`                     | `Artifacts/model_features.csv`                             |
-| EDA & modeling               | `Code/Modeling and Visualization/`                    | Figures, metrics, SHAP exports                             |
+| Stage                        | Notebook / tool                                              | Output                                                     |
+| ---------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
+| Optional clip split          | `Code/video_manipulation_utility.ipynb`                      | Shorter MP4 clips under `Artifacts/video_clips/`           |
+| Vehicle proximity from video | `Code/dashcam_vehicle_proximity_analysis.ipynb`              | Annotated video + proximity interval CSV                   |
+| Weather + traffic            | `Code/extract_environment_and_traffic_features.ipynb`        | `Artifacts/extracted_features.csv`                         |
+| Merge env + vehicle bins     | `Code/build_model_features.ipynb`                            | `Artifacts/model_features.csv`                             |
+| EDA & modeling               | `Code/Modeling and Visualization/`                           | Figures, metrics, SHAP exports                             |
+| EV / ICE labeling            | `Code/EV training module/Vehicle tinder/`                    | `output/annotations.csv`                                   |
+| EV / ICE training & analysis | `Code/EV training module/Trainer/`                           | Runs under `runs/`, export under `models/`                 |
 
 
 Place YOLO weights at `Code/yolov8n.pt` (or set `MODEL_WEIGHTS` in the dashcam notebook).
@@ -75,6 +80,28 @@ Optional utilities under `Code/Helpers/` support video splicing and route covera
 
 ---
 
+## EV training module
+
+Tools under `Code/EV training module/` support labeling vehicle crops and training Stage-2 **EV vs ICE** classifiers.
+
+1. **Label** with Vehicle Tinder (`Vehicle tinder/`) — swipe or keyboard-label images; labels write to `output/annotations.csv`.
+2. **Train / compare** with `Trainer/training_pipeline.ipynb` — torchvision and YOLO-cls experiments ranked primarily by EV metrics.
+3. **Inspect** with `Trainer/results_analysis.ipynb` and `Trainer/explaining_stage_2.ipynb`.
+4. **Deploy** via `Trainer/ev_ice_classifier.py` (`LocalEVClassifier.score_crop`) using an exported `models/best_ev_ice_classifier/` checkpoint.
+
+Dataset layout for training (local; not committed):
+
+```text
+Code/EV training module/Trainer/dataset/
+  annotations.csv
+  ev/
+  ice/
+```
+
+Vehicle Tinder quick start (annotators): see [`Code/EV training module/Vehicle tinder/README.md`](Code/EV%20training%20module/Vehicle%20tinder/README.md). Double-click `Start Vehicle Tinder (Mac).command` or `Start Vehicle Tinder (Windows).bat` — do not open `index.html` directly.
+
+---
+
 ## Repository layout
 
 ```text
@@ -95,13 +122,25 @@ Optional utilities under `Code/Helpers/` support video splicing and route covera
     ├── Helpers/
     │   ├── route_tracer.ipynb
     │   └── video_splicer.ipynb
-    └── Modeling and Visualization/
-        ├── README.md
-        ├── bc_config.py
-        ├── bc_eda.py
-        ├── bc_modeling.py
-        ├── bc_eda_visualization.ipynb
-        └── bc_predictive_modeling.ipynb
+    ├── Modeling and Visualization/
+    │   ├── README.md
+    │   ├── bc_config.py
+    │   ├── bc_eda.py
+    │   ├── bc_modeling.py
+    │   ├── bc_eda_visualization.ipynb
+    │   └── bc_predictive_modeling.ipynb
+    └── EV training module/
+        ├── Vehicle tinder/           # Local EV/ICE labeling app (stdlib only)
+        │   ├── app.py
+        │   ├── README.md
+        │   ├── images/{ev,ice}/
+        │   └── output/
+        └── Trainer/
+            ├── training_pipeline.ipynb
+            ├── results_analysis.ipynb
+            ├── explaining_stage_2.ipynb
+            ├── ev_ice_classifier.py
+            └── dataset/              # Local images + annotations.csv
 ```
 
 ---
@@ -179,6 +218,9 @@ For predictable paths, start Jupyter from the repository root (the folder that c
    - `extract_environment_and_traffic_features.ipynb`
    - `build_model_features.ipynb`
    - Optional: notebooks in `Modeling and Visualization/`
+5. Optional EV / ICE work under `Code/EV training module/`:
+   - Label crops with Vehicle Tinder
+   - Run `Trainer/training_pipeline.ipynb`, then analysis / explainability notebooks
 
 ---
 
@@ -209,6 +251,16 @@ Aligns 1 Hz environmental rows with vehicle interval counts into bins of width `
 
 See [`Code/Modeling and Visualization/README.md`](Code/Modeling%20and%20Visualization/README.md).
 
+### EV training module
+
+| Path | Role |
+| ---- | ---- |
+| `EV training module/Vehicle tinder/` | Browser labeling UI for EV / ICE / skip; CSV export |
+| `EV training module/Trainer/training_pipeline.ipynb` | Train and compare Stage-2 classifiers; export best checkpoint |
+| `EV training module/Trainer/results_analysis.ipynb` | Held-out wins / losses vs baseline |
+| `EV training module/Trainer/explaining_stage_2.ipynb` | Grad-CAM / explainability figures for the best model |
+| `EV training module/Trainer/ev_ice_classifier.py` | Drop-in `score_crop` wrapper for exported weights |
+
 ---
 
 ## Dependencies
@@ -219,10 +271,16 @@ See [`Code/Modeling and Visualization/README.md`](Code/Modeling%20and%20Visualiz
 | `ultralytics`          | YOLO models and tracking         |
 | `opencv-python`        | Video I/O and overlays           |
 | `numpy`, `pandas`      | Arrays and tables                |
+| `torch`, `torchvision` | EV trainer (torchvision backbones) |
+| `scikit-learn`         | Splits / metrics in EV trainer   |
+| `matplotlib`, `seaborn`| EV analysis / explainability plots |
 | `requests`             | Open-Meteo and TomTom HTTP calls |
 | `tqdm`                 | Progress bars                    |
 | `jupyter`, `ipykernel` | Notebook execution               |
 | `ffmpeg` / `ffprobe`   | Clip splitting (system)          |
+
+
+Vehicle Tinder needs **Python 3.9+** only (standard library).
 
 
 ---
@@ -239,3 +297,5 @@ See [`Code/Modeling and Visualization/README.md`](Code/Modeling%20and%20Visualiz
 | Misaligned times in merge          | Use timezone-aware datetimes; match `BIN_DURATION_SECONDS` to vehicle bins. |
 | Slow dashcam run                   | Shorter clips, lower export resolution, or tune confidence / device.        |
 | Long TomTom runs                   | Use chunk settings; skip finished chunks.                                   |
+| Vehicle Tinder shows 0 / 0         | Launch via the `.command` / `.bat` starter, not by opening HTML directly.   |
+| EV trainer missing dataset         | Add `annotations.csv` and images under `Trainer/dataset/{ev,ice}/`.         |
