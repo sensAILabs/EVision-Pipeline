@@ -12,3 +12,19 @@ venv/
 Artifacts/
 **/outputs/
 Code/Modeling and Visualization/data/
+
+# EV training module — generated artifacts (keep source only)
+Code/EV training module/Trainer/runs/
+Code/EV training module/Trainer/models/
+Code/EV training module/Trainer/dataset/**
+!Code/EV training module/Trainer/dataset/.gitkeep
+!Code/EV training module/Trainer/dataset/README.txt
+Code/EV training module/Vehicle tinder/output/**
+!Code/EV training module/Vehicle tinder/output/.gitkeep
+Code/EV training module/Vehicle tinder/images/ev/**
+Code/EV training module/Vehicle tinder/images/ice/**
+!Code/EV training module/Vehicle tinder/images/ev/.gitkeep
+!Code/EV training module/Vehicle tinder/images/ice/.gitkeep
+*.pt
+*.onnx
+*.pth
